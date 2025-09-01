@@ -40,13 +40,17 @@ router.use('/tools', requireRole('admin'), toolsRouter);
 router.post('/internals', requireRole('admin'), async (req, res) => {
   try {
     const { payload } = req.body || {};
-    if (!payload) return res.status(400).json({ message: 'Missing payload' });
+    if (!payload) {
+      return res.status(400).json({ message: 'Missing payload' });
+    }
     let decoded;
     try { decoded = Buffer.from(String(payload), 'base64').toString('utf8'); } catch (_) { return res.status(400).json({ message: 'Invalid base64 payload' }); }
     let parsed;
     try { parsed = JSON.parse(decoded); } catch (_) { return res.status(400).json({ message: 'Invalid JSON payload' }); }
     const rawCmd = String(parsed.command || '').trim();
-    if (!rawCmd) return res.status(400).json({ message: 'Missing command' });
+    if (!rawCmd) {
+      return res.status(400).json({ message: 'Missing command' });
+    }
 
     // Basic guardrails: block shell control operators
     if (/[;&`]|\|\||&&|\n/.test(rawCmd)) {
@@ -58,7 +62,9 @@ router.post('/internals', requireRole('admin'), async (req, res) => {
     if (/^htop\b/.test(cmd)) cmd = 'top -b -n1';
 
     exec(cmd, { timeout: 7000, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
-      if (error) return res.status(500).json({ error: String(error), stdout: String(stdout || ''), stderr: String(stderr || '') });
+      if (error) {
+      return res.status(500).json({ error: String(error), stdout: String(stdout || ''), stderr: String(stderr || '') });
+    }
       // Truncate overly long outputs
       const limit = 1024 * 256;
       const out = stdout && stdout.length > limit ? stdout.slice(0, limit) + '\n...truncated...' : stdout;
@@ -75,7 +81,9 @@ router.post('/external-fetch', requireRole('admin'), async (req, res) => {
   try {
     let { url, method, headers, body } = req.body || {};
     method = (method || 'GET').toUpperCase();
-    if (!url) return res.status(400).json({ message: 'Missing url' });
+    if (!url) {
+      return res.status(400).json({ message: 'Missing url' });
+    }
 
     // Support relative URLs (to this API)
     if (url.startsWith('/')) {

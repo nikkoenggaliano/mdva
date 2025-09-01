@@ -16,7 +16,9 @@ function md5Hash(input) {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-    if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+    if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
 
     const passwordHash = md5Hash(password);
     const [rows] = await pool.promise().query(

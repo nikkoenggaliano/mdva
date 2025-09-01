@@ -15,7 +15,9 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { key, value } = req.body || {};
-    if (!key) return res.status(400).json({ message: 'Missing key' });
+    if (!key) {
+    return res.status(400).json({ message: 'Missing key' });
+  }
     await pool.promise().query('INSERT INTO settings (`key`, value, created_at, updated_at) VALUES (?, ?, NOW(), NOW())', [key, value]);
     res.status(201).json({ message: 'Setting created' });
   } catch (e) { res.status(500).json({ message: 'Server error' }); }

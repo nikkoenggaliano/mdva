@@ -9,7 +9,9 @@ const router = express.Router();
 router.get('/unread', async (req, res) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
     const [rows] = await pool.promise().query(
       'SELECT * FROM notifications WHERE user_id=? AND status=0 ORDER BY id DESC LIMIT 50',
       [userId]
@@ -24,7 +26,9 @@ router.get('/unread', async (req, res) => {
 router.put('/:id/read', async (req, res) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
     const id = Number(req.params.id);
     await pool.promise().query('UPDATE notifications SET status=1, updated_at=NOW() WHERE id=? AND user_id=?', [id, userId]);
     res.json({ message: 'Marked as read' });

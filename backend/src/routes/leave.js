@@ -43,7 +43,9 @@ router.get('/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [[row]] = await pool.promise().query('SELECT * FROM leave_request WHERE id=? LIMIT 1', [id]);
-    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (!row) {
+      return res.status(404).json({ message: 'Not found' });
+    }
     // Allow owners; admins/hrd can also view
     if (row.user_id !== req.user.id && !['admin', 'hrd'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Forbidden' });
@@ -57,9 +59,15 @@ router.put('/:id/cancel', async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [[row]] = await pool.promise().query('SELECT * FROM leave_request WHERE id=? LIMIT 1', [id]);
-    if (!row) return res.status(404).json({ message: 'Not found' });
-    if (row.user_id !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
-    if (Number(row.status) !== 0) return res.status(400).json({ message: 'Only pending requests can be canceled' });
+    if (!row) {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    if (row.user_id !== req.user.id) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    if (Number(row.status) !== 0) {
+      return res.status(400).json({ message: 'Only pending requests can be canceled' });
+    }
     await pool.promise().query('UPDATE leave_request SET status=3, updated_at=NOW() WHERE id=?', [id]);
     res.json({ message: 'Leave request canceled' });
   } catch (e) { res.status(500).json({ message: 'Server error' }); }

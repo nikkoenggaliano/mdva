@@ -28,7 +28,9 @@ router.post('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const [rows] = await pool.promise().query('SELECT * FROM leave_request WHERE id=? AND user_id=? LIMIT 1', [req.params.id, req.user.id]);
-    if (!rows || rows.length === 0) return res.status(404).json({ message: 'Not found' });
+    if (!rows || rows.length === 0) {
+    return res.status(404).json({ message: 'Not found' });
+  }
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });
@@ -37,8 +39,12 @@ router.get('/:id', async (req, res) => {
 router.put('/:id/cancel', async (req, res) => {
   try {
     const [[row]] = await pool.promise().query('SELECT * FROM leave_request WHERE id=? AND user_id=? LIMIT 1', [req.params.id, req.user.id]);
-    if (!row) return res.status(404).json({ message: 'Not found' });
-    if (Number(row.status) !== 0) return res.status(400).json({ message: 'Only pending requests can be canceled' });
+      if (!row) {
+    return res.status(404).json({ message: 'Not found' });
+  }
+  if (Number(row.status) !== 0) {
+    return res.status(400).json({ message: 'Only pending requests can be canceled' });
+  }
     await pool.promise().query('UPDATE leave_request SET status=3, updated_at=NOW() WHERE id=?', [req.params.id]);
     res.json({ message: 'Leave request canceled' });
   } catch (e) { res.status(500).json({ message: 'Server error' }); }

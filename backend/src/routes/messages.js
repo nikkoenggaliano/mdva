@@ -74,7 +74,9 @@ router.get('/:id', async (req, res) => {
        LIMIT 1`,
       [req.params.id]
     );
-    if (!rows || rows.length === 0) return res.status(404).json({ message: 'Not found' });
+    if (!rows || rows.length === 0) {
+    return res.status(404).json({ message: 'Not found' });
+  }
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });

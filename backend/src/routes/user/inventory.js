@@ -5,6 +5,7 @@ const { pool } = require('../../config/db');
 
 const router = express.Router();
 
+// get all inventory with pagination and search
 router.get('/', async (req, res) => {
   try {
     const page = Number(req.query.page || 1);
@@ -23,14 +24,20 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });
 
-// Back-compat: create request via /request
+// create request via /request
 router.post('/request', async (req, res) => {
   try {
     const { inventory_id, quantity } = req.body || {};
     const [[inv]] = await pool.promise().query('SELECT quantity FROM inventory WHERE id=? LIMIT 1', [Number(inventory_id)]);
-    if (!inv) return res.status(404).json({ message: 'Inventory not found' });
-    if (Number(quantity) <= 0) return res.status(400).json({ message: 'Quantity must be > 0' });
-    if (Number(quantity) > Number(inv.quantity)) return res.status(400).json({ message: 'Quantity exceeds stock' });
+    if (!inv) {
+      return res.status(404).json({ message: 'Inventory not found' });
+    }
+    if (Number(quantity) <= 0) {
+      return res.status(400).json({ message: 'Quantity must be > 0' });
+    }
+    if (Number(quantity) > Number(inv.quantity)) {
+      return res.status(400).json({ message: 'Quantity exceeds stock' });
+    }
     await pool.promise().query(
       'INSERT INTO inventory_request (user_id, inventory_id, quantity, status, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW())',
       [req.user.id, Number(inventory_id), Number(quantity)]
@@ -39,20 +46,30 @@ router.post('/request', async (req, res) => {
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });
 
-// Create request via POST /
+// Create request via POST /api/inventory
 router.post('/', async (req, res) => {
   try {
     const { inventory_id, quantity } = req.body || {};
     const [[inv]] = await pool.promise().query('SELECT quantity FROM inventory WHERE id=? LIMIT 1', [Number(inventory_id)]);
-    if (!inv) return res.status(404).json({ message: 'Inventory not found' });
-    if (Number(quantity) <= 0) return res.status(400).json({ message: 'Quantity must be > 0' });
-    if (Number(quantity) > Number(inv.quantity)) return res.status(400).json({ message: 'Quantity exceeds stock' });
+    if (!inv) {
+      return res.status(404).json({ message: 'Inventory not found' });
+    }
+    if (Number(quantity) <= 0) {
+      return res.status(400).json({ message: 'Quantity must be > 0' });
+    }
+    if (Number(quantity) > Number(inv.quantity)) {
+      return res.status(400).json({ message: 'Quantity exceeds stock' });
+    }
     // Block if there is a pending request for this inventory by the same user
     const [[pending]] = await pool.promise().query('SELECT id FROM inventory_request WHERE user_id=? AND inventory_id=? AND status=0 LIMIT 1', [req.user.id, Number(inventory_id)]);
-    if (pending) return res.status(400).json({ message: 'You already have a pending request for this item' });
+    if (pending) {
+      return res.status(400).json({ message: 'You already have a pending request for this item' });
+    }
     // Block if there is an active approved (not returned) request (status=1)
     const [[approved]] = await pool.promise().query('SELECT id FROM inventory_request WHERE user_id=? AND inventory_id=? AND status=1 LIMIT 1', [req.user.id, Number(inventory_id)]);
-    if (approved) return res.status(400).json({ message: 'You must return current item before borrowing again' });
+    if (approved) {
+      return res.status(400).json({ message: 'You must return current item before borrowing again' });
+    }
     await pool.promise().query(
       'INSERT INTO inventory_request (user_id, inventory_id, quantity, status, created_at, updated_at) VALUES (?, ?, ?, 0, NOW(), NOW())',
       [req.user.id, Number(inventory_id), Number(quantity)]
@@ -61,7 +78,7 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });
 
-// Borrow history for current user
+// Borrow history for current user via /api/inventory/history-borrow
 router.get('/history-borrow', async (req, res) => {
   try {
     const [rows] = await pool.promise().query(
@@ -76,7 +93,7 @@ router.get('/history-borrow', async (req, res) => {
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });
 
-// Alias: /history
+// Alias: /api/inventory/history
 router.get('/history', async (req, res) => {
   try {
     const [rows] = await pool.promise().query(
@@ -96,8 +113,12 @@ router.post('/return', async (req, res) => {
   try {
     const { request_id } = req.body || {};
     const [[row]] = await pool.promise().query('SELECT * FROM inventory_request WHERE id=? AND user_id=? LIMIT 1', [Number(request_id), req.user.id]);
-    if (!row) return res.status(404).json({ message: 'Request not found' });
-    if (Number(row.status) !== 1) return res.status(400).json({ message: 'Only approved requests can be returned' });
+    if (!row) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+    if (Number(row.status) !== 1) {
+      return res.status(400).json({ message: 'Only approved requests can be returned' });
+    }
     await pool.promise().query('UPDATE inventory SET quantity = quantity + ? WHERE id=?', [row.quantity, row.inventory_id]);
     await pool.promise().query('UPDATE inventory_request SET status=3, updated_at=NOW() WHERE id=?', [row.id]);
     res.json({ message: 'Returned' });
@@ -109,8 +130,12 @@ router.put('/:id/returned', async (req, res) => {
   try {
     const id = Number(req.params.id);
     const [[row]] = await pool.promise().query('SELECT * FROM inventory_request WHERE id=? AND user_id=? LIMIT 1', [id, req.user.id]);
-    if (!row) return res.status(404).json({ message: 'Request not found' });
-    if (Number(row.status) !== 1) return res.status(400).json({ message: 'Only approved requests can be returned' });
+    if (!row) {
+      return res.status(404).json({ message: 'Request not found' });
+    }
+    if (Number(row.status) !== 1) {
+      return res.status(400).json({ message: 'Only approved requests can be returned' });
+    }
     await pool.promise().query('UPDATE inventory SET quantity = quantity + ? WHERE id=?', [row.quantity, row.inventory_id]);
     await pool.promise().query('UPDATE inventory_request SET status=3, updated_at=NOW() WHERE id=?', [row.id]);
     res.json({ message: 'Returned' });

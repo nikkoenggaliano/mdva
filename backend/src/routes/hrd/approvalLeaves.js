@@ -40,7 +40,9 @@ router.get('/:id', async (req, res) => {
        WHERE lr.id=? LIMIT 1`,
       [req.params.id]
     );
-    if (!rows || rows.length === 0) return res.status(404).json({ message: 'Not found' });
+    if (!rows || rows.length === 0) {
+    return res.status(404).json({ message: 'Not found' });
+  }
     res.json(rows[0]);
   } catch (e) { res.status(500).json({ message: 'Server error' }); }
 });
@@ -53,7 +55,9 @@ router.put('/:id/status', async (req, res) => {
       return res.status(400).json({ message: 'Comment is required for rejection' });
     }
     const [[row]] = await pool.promise().query('SELECT * FROM leave_request WHERE id=? LIMIT 1', [id]);
-    if (!row) return res.status(404).json({ message: 'Not found' });
+    if (!row) {
+    return res.status(404).json({ message: 'Not found' });
+  }
 
     if (Number(status) === 1) {
       // Check if already approved (status=1)

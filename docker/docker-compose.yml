@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: mdva-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:-root}
+      MYSQL_DATABASE: ${DB_NAME:-mdva}
+      MYSQL_USER: ${DB_USER:-mdva}
+      MYSQL_PASSWORD: ${DB_PASS:-root}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ../database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    container_name: mdva-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-mdva}
+      DB_PASS: ${DB_PASS:-root}
+      DB_NAME: ${DB_NAME:-mdva}
+      JWT_SECRET: ${JWT_SECRET:-mdva_prod_secret}
+    depends_on:
+      - db
+    volumes:
+      - ../backend/uploads:/app/backend/uploads
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    container_name: mdva-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE: ""
+    depends_on:
+      - backend
+
+  web:
+    build:
+      context: ..
+      dockerfile: docker/nginx.Dockerfile
+    container_name: mdva-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - web_certs:/etc/nginx/certs
+
+volumes:
+  db_data:
+  web_certs:
+
+

@@ -5,11 +5,7 @@ show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --ssl <true|false>           Enable/disable SSL (default: false)"
-    echo "  --frontend-http-port <port>  Set frontend HTTP port (default: 8080)"
-    echo "  --frontend-https-port <port> Set frontend HTTPS port (default: 8081)"
-    echo "  --backend-http-port <port>   Set backend HTTP port (default: 3001)"
-    echo "  --backend-https-port <port>  Set backend HTTPS port (default: 3002)"
+    echo "  --backend-http-port <port>  Set backend HTTP port (default: 3001)"
     echo "  --db-user <user>             Set database user (default: mdva)"
     echo "  --db-pass <password>         Set database password (default: root)"
     echo "  --db-name <name>             Set database name (default: mdva)"
@@ -19,8 +15,8 @@ show_usage() {
     echo "  --help                       Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --ssl true --frontend-http-port 3000 --frontend-https-port 3001"
-    echo "  $0 --frontend-http-port 9090"
+    echo "  $0 --backend-http-port 4000"
+    echo "  $0 --db-user admin --db-pass mypassword"
     echo "  $0 --show"
     echo "  $0 --reset"
 }
@@ -44,32 +40,14 @@ reset_config() {
 # ========================================
 # MDVA DOCKER CONFIGURATION
 # ========================================
+# BACKEND + MYSQL ONLY (NO NGINX/FRONTEND)
+# ========================================
 
 # ========================================
-# SSL CONFIGURATION
+# BACKEND PORT
 # ========================================
-# Enable or disable SSL
-# true = SSL enabled (HTTPS)
-# false = SSL disabled (HTTP only)
-SSL_ENABLED=false
-
-# ========================================
-# FRONTEND PORTS
-# ========================================
-# Port untuk frontend HTTP
-FRONTEND_HTTP_PORT=8080
-
-# Port untuk frontend HTTPS (jika SSL enabled)
-FRONTEND_HTTPS_PORT=8081
-
-# ========================================
-# BACKEND PORTS
-# ========================================
-# Port untuk backend HTTP
+# Port untuk backend API
 BACKEND_HTTP_PORT=3001
-
-# Port untuk backend HTTPS (jika SSL enabled)
-BACKEND_HTTPS_PORT=3002
 
 # ========================================
 # DATABASE CONFIGURATION
@@ -112,32 +90,14 @@ update_config() {
 # ========================================
 # MDVA DOCKER CONFIGURATION
 # ========================================
+# BACKEND + MYSQL ONLY (NO NGINX/FRONTEND)
+# ========================================
 
 # ========================================
-# SSL CONFIGURATION
+# BACKEND PORT
 # ========================================
-# Enable or disable SSL
-# true = SSL enabled (HTTPS)
-# false = SSL disabled (HTTP only)
-SSL_ENABLED=false
-
-# ========================================
-# FRONTEND PORTS
-# ========================================
-# Port untuk frontend HTTP
-FRONTEND_HTTP_PORT=8080
-
-# Port untuk frontend HTTPS (jika SSL enabled)
-FRONTEND_HTTPS_PORT=8081
-
-# ========================================
-# BACKEND PORTS
-# ========================================
-# Port untuk backend HTTP
+# Port untuk backend API
 BACKEND_HTTP_PORT=3001
-
-# Port untuk backend HTTPS (jika SSL enabled)
-BACKEND_HTTPS_PORT=3002
 
 # ========================================
 # DATABASE CONFIGURATION
@@ -173,48 +133,12 @@ fi
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --ssl)
-            if [[ "$2" =~ ^(true|false)$ ]]; then
-                update_config "SSL_ENABLED" "$2"
-                shift 2
-            else
-                echo "Error: SSL value must be 'true' or 'false'"
-                exit 1
-            fi
-            ;;
-        --frontend-http-port)
-            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ]; then
-                update_config "FRONTEND_HTTP_PORT" "$2"
-                shift 2
-            else
-                echo "Error: Frontend HTTP port must be a number between 1-65535"
-                exit 1
-            fi
-            ;;
-        --frontend-https-port)
-            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ]; then
-                update_config "FRONTEND_HTTPS_PORT" "$2"
-                shift 2
-            else
-                echo "Error: Frontend HTTPS port must be a number between 1-65535"
-                exit 1
-            fi
-            ;;
         --backend-http-port)
             if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ]; then
                 update_config "BACKEND_HTTP_PORT" "$2"
                 shift 2
             else
                 echo "Error: Backend HTTP port must be a number between 1-65535"
-                exit 1
-            fi
-            ;;
-        --backend-https-port)
-            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ]; then
-                update_config "BACKEND_HTTPS_PORT" "$2"
-                shift 2
-            else
-                echo "Error: Backend HTTPS port must be a number between 1-65535"
                 exit 1
             fi
             ;;

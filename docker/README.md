@@ -1,15 +1,14 @@
 # MDVA Docker Configuration
 
-Konfigurasi Docker yang mudah untuk mengatur SSL dan port pada aplikasi MDVA.
+Konfigurasi Docker yang mudah untuk **Backend + MySQL** pada aplikasi MDVA.
 
 ## Fitur
 
-- ✅ Konfigurasi SSL yang mudah (enable/disable)
-- ✅ Konfigurasi port frontend dan backend yang terpisah
+- ✅ **Backend + MySQL Only** - Tidak ada nginx/frontend
+- ✅ Konfigurasi port backend yang mudah
 - ✅ Environment variables untuk semua konfigurasi
-- ✅ Script otomatis untuk generate nginx config
 - ✅ Script untuk mengubah konfigurasi dengan mudah
-- ✅ Script debugging dan troubleshooting
+- ✅ Ultimate runner dengan semua fitur fix dan clean
 
 ## File Konfigurasi
 
@@ -23,11 +22,7 @@ File yang berisi konfigurasi yang sedang digunakan. File ini akan dibuat otomati
 
 | Variabel | Default | Deskripsi |
 |----------|---------|-----------|
-| `SSL_ENABLED` | `false` | Enable/disable SSL |
-| `FRONTEND_HTTP_PORT` | `8080` | Port untuk frontend HTTP |
-| `FRONTEND_HTTPS_PORT` | `8081` | Port untuk frontend HTTPS |
-| `BACKEND_HTTP_PORT` | `3001` | Port untuk backend HTTP |
-| `BACKEND_HTTPS_PORT` | `3002` | Port untuk backend HTTPS |
+| `BACKEND_HTTP_PORT` | `3001` | Port untuk backend API |
 | `DB_USER` | `mdva` | Username database |
 | `DB_PASS` | `root` | Password database |
 | `DB_NAME` | `mdva` | Nama database |
@@ -51,11 +46,11 @@ nano .env
 # Lihat konfigurasi saat ini
 ./configure.sh --show
 
-# Enable SSL dan ubah port
-./configure.sh --ssl true --frontend-http-port 3000 --frontend-https-port 3001
+# Ubah port backend
+./configure.sh --backend-http-port 4000
 
-# Hanya ubah port frontend HTTP
-./configure.sh --frontend-http-port 9090
+# Ubah database credentials
+./configure.sh --db-user admin --db-pass mypassword
 
 # Reset ke default
 ./configure.sh --reset
@@ -64,39 +59,79 @@ nano .env
 ./configure.sh --help
 ```
 
-### 3. Menjalankan Aplikasi
+### 3. Menjalankan Aplikasi dengan Ultimate Runner
 
 ```bash
-# Jalankan dengan konfigurasi saat ini
+# Jalankan normal
 ./run.sh
 
-# Atau jalankan manual
-docker-compose up -d
+# Fix backend issues
+./run.sh --fix
+
+# Clean dan rebuild
+./run.sh --clean
+
+# Super clean (MDVA containers/images only)
+./run.sh --super-clean
+
+# Lihat bantuan
+./run.sh --help
 ```
+
+## Ultimate Runner Options
+
+### **Normal Run**
+```bash
+./run.sh
+```
+- Jalankan dengan konfigurasi saat ini
+- Start backend dan MySQL
+- Port backend sesuai konfigurasi
+
+### **Fix Mode**
+```bash
+./run.sh --fix
+```
+- Fix masalah backend
+- Rebuild backend container
+- Restart backend service
+
+### **Clean Mode**
+```bash
+./run.sh --clean
+```
+- Stop semua MDVA container
+- Hapus MDVA images
+- Rebuild dari awal
+
+### **Super Clean Mode**
+```bash
+./run.sh --super-clean
+```
+- Hapus MDVA containers dan images saja
+- **TIDAK menghapus container lain yang tidak berhubungan**
+- Cleanup total untuk MDVA
+- Build ulang dari nol
 
 ## Contoh Konfigurasi
 
-### Tanpa SSL (Default)
+### Default Configuration
 ```bash
-SSL_ENABLED=false
-FRONTEND_HTTP_PORT=8080
-FRONTEND_HTTPS_PORT=8081
 BACKEND_HTTP_PORT=3001
-BACKEND_HTTPS_PORT=3002
+DB_USER=mdva
+DB_PASS=root
+DB_NAME=mdva
+JWT_SECRET=mdva_prod_secret_2024
 ```
 
-### Dengan SSL
+### Custom Configuration
 ```bash
-SSL_ENABLED=true
-FRONTEND_HTTP_PORT=8080
-FRONTEND_HTTPS_PORT=8081
-BACKEND_HTTP_PORT=3001
-BACKEND_HTTPS_PORT=3002
+BACKEND_HTTP_PORT=4000
+DB_USER=admin
+DB_PASS=mypassword123
+DB_NAME=myapp
+JWT_SECRET=mysecretkey2024
 ```
-
-**Note:** Jika SSL dienable, pastikan file sertifikat ada di folder `certs/`:
-- `certs/server.crt` - Sertifikat SSL
-- `certs/server.key` - Private key SSL
 
 ## Struktur Folder
 
@@ -104,18 +139,14 @@ BACKEND_HTTPS_PORT=3002
 docker/
 ├── .env                    # Konfigurasi aktif (akan dibuat otomatis)
 ├── env.template           # Template konfigurasi
-├── docker-compose.yml     # Docker compose file
+├── docker-compose.yml     # Docker compose file (backend + MySQL only)
 ├── configure.sh           # Script untuk mengubah konfigurasi
-├── generate-nginx-config.sh # Script untuk generate nginx config
-├── run.sh                 # Script untuk menjalankan aplikasi
-├── quick-start.sh         # Script untuk quick start
+├── run.sh                 # Ultimate runner dengan semua fitur
 ├── debug.sh               # Script untuk debugging
-├── restart.sh             # Script untuk restart dan cleanup
-├── nginx/                 # Folder nginx config (akan dibuat otomatis)
-│   └── site.conf         # Config nginx (akan dibuat otomatis)
-└── certs/                 # Folder untuk SSL certificates (opsional)
-    ├── server.crt
-    └── server.key
+├── backend.Dockerfile     # Backend image
+└── database/              # Database scripts
+    ├── schema.sql
+    └── seed.sql
 ```
 
 ## Troubleshooting
@@ -123,28 +154,19 @@ docker/
 ### Port sudah digunakan
 ```bash
 # Cek port yang sedang digunakan
-lsof -i :8080
+lsof -i :3001
 
 # Ubah port
-./configure.sh --frontend-http-port 9090
+./configure.sh --backend-http-port 4000
 ```
 
-### SSL tidak berfungsi
+### Backend tidak start
 ```bash
-# Pastikan sertifikat ada
-ls -la certs/
+# Fix backend issues
+./run.sh --fix
 
-# Atau disable SSL
-./configure.sh --ssl false
-```
-
-### Nginx config error
-```bash
-# Generate ulang nginx config
-./generate-nginx-config.sh
-
-# Atau restart dengan cleanup
-./restart.sh --clean
+# Atau clean rebuild
+./run.sh --clean
 ```
 
 ### Container tidak start
@@ -152,11 +174,11 @@ ls -la certs/
 # Debug masalah
 ./debug.sh
 
-# Restart semua service
-./restart.sh
+# Fix backend
+./run.sh --fix
 
-# Lihat logs
-docker-compose logs -f
+# Super clean jika masih bermasalah
+./run.sh --super-clean
 ```
 
 ### Reset semua konfigurasi
@@ -170,15 +192,6 @@ docker-compose logs -f
 ```bash
 # Cek status semua komponen
 ./debug.sh
-```
-
-### Restart Tool
-```bash
-# Restart normal
-./restart.sh
-
-# Restart dengan cleanup total
-./restart.sh --clean
 ```
 
 ## Perintah Docker
@@ -205,4 +218,30 @@ docker-compose ps
 - Jangan commit file `.env` ke repository
 - Gunakan password yang kuat untuk database
 - JWT secret harus unik dan aman
-- SSL certificates harus valid dan aman
+
+## ⚠️ Penting: Super Clean Scope
+
+**`./run.sh --super-clean` hanya akan menghapus:**
+- ✅ Container MDVA: `mdva-backend`, `mdva-db`
+- ✅ Image MDVA: `docker_backend`
+- ✅ Volume MDVA yang terkait
+
+**TIDAK akan menghapus:**
+- ❌ Container lain yang tidak berhubungan dengan MDVA
+- ❌ Image lain yang tidak berhubungan dengan MDVA
+- ❌ Volume lain yang tidak berhubungan dengan MDVA
+
+**Aman untuk server yang punya container lain!** 🛡️
+
+## 🎯 Koneksi Backend + MySQL
+
+**Backend akan terkoneksi ke MySQL melalui:**
+- **Host**: `db` (nama service di docker-compose)
+- **Port**: `3306` (internal)
+- **Database**: Sesuai konfigurasi di `.env`
+- **Username/Password**: Sesuai konfigurasi di `.env`
+
+**Backend accessible dari host:**
+- **URL**: `http://localhost:BACKEND_HTTP_PORT`
+- **Default**: `http://localhost:3001`
+- **API**: `http://localhost:3001/api`

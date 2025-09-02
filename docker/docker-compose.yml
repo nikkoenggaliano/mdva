@@ -39,42 +39,7 @@ services:
     volumes:
       - ../backend/uploads:/app/backend/uploads
 
-  frontend:
-    build:
-      context: ..
-      dockerfile: docker/frontend.Dockerfile
-    container_name: mdva-frontend
-    restart: unless-stopped
-    environment:
-      VITE_API_BASE: ""
-    depends_on:
-      - backend
-
-  web:
-    build:
-      context: ..
-      dockerfile: docker/nginx.Dockerfile
-    container_name: mdva-web
-    restart: unless-stopped
-    environment:
-      SSL_ENABLED: ${SSL_ENABLED:-false}
-      FRONTEND_HTTP_PORT: ${FRONTEND_HTTP_PORT:-8080}
-      FRONTEND_HTTPS_PORT: ${FRONTEND_HTTPS_PORT:-8081}
-      BACKEND_HTTP_PORT: ${BACKEND_HTTP_PORT:-3001}
-      BACKEND_HTTPS_PORT: ${BACKEND_HTTPS_PORT:-3002}
-    ports:
-      - "${FRONTEND_HTTP_PORT:-8080}:80"
-      - "${FRONTEND_HTTPS_PORT:-8081}:443"
-    depends_on:
-      - frontend
-      - backend
-    volumes:
-      - web_certs:/etc/nginx/certs
-      # Remove the nginx config volume mount to avoid conflicts
-      # - ./nginx:/etc/nginx/conf.d
-
 volumes:
   db_data:
-  web_certs:
 
 

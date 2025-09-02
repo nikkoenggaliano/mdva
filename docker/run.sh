@@ -13,74 +13,208 @@ check_docker_compose() {
     fi
 }
 
-# Check for docker-compose availability
-DOCKER_COMPOSE_CMD=$(check_docker_compose)
-if [ $? -ne 0 ]; then
-    echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available!"
+# Function to show usage
+show_usage() {
+    echo "🚀 MDVA Backend + MySQL Runner"
+    echo "=============================="
     echo ""
-    echo "Please install Docker Compose:"
-    echo "  - For docker-compose: https://docs.docker.com/compose/install/"
-    echo "  - For docker compose: Update Docker to latest version"
+    echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Or check if Docker is running:"
-    echo "  docker --version"
-    echo "  docker info"
-    exit 1
-fi
+    echo "Options:"
+    echo "  (no args)     Run normally with current config"
+    echo "  --fix         Fix backend issues and restart"
+    echo "  --clean       Clean everything and rebuild from scratch"
+    echo "  --super-clean Super clean - remove MDVA containers/images only"
+    echo "  --help        Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0              # Run normally"
+    echo "  $0 --fix        # Fix backend issues"
+    echo "  $0 --clean      # Clean and rebuild"
+    echo "  $0 --super-clean # Clean MDVA containers/images only"
+}
 
-echo "✅ Using: $DOCKER_COMPOSE_CMD"
+# Function to check if .env exists
+check_env() {
+    if [ ! -f .env ]; then
+        echo "📝 Creating .env file from template..."
+        cp env.template .env
+        echo "✅ .env file created!"
+    fi
+}
 
-# Load environment variables
-if [ -f .env ]; then
-    export $(cat .env | grep -v '^#' | xargs)
-else
-    echo "No .env file found. Using default values."
-fi
+# Function to run normally
+run_normal() {
+    echo "🚀 Starting MDVA Backend + MySQL services..."
+    
+    # Check environment
+    check_env
+    
+    # Start services
+    $DOCKER_COMPOSE_CMD up -d
+    
+    echo ""
+    echo "✅ Services started successfully!"
+    show_status
+}
 
-# Set defaults
-SSL_ENABLED=${SSL_ENABLED:-false}
-FRONTEND_HTTP_PORT=${FRONTEND_HTTP_PORT:-8080}
-FRONTEND_HTTPS_PORT=${FRONTEND_HTTPS_PORT:-8081}
-BACKEND_HTTP_PORT=${BACKEND_HTTP_PORT:-3001}
-BACKEND_HTTPS_PORT=${BACKEND_HTTPS_PORT:-3002}
+# Function to fix backend issues
+run_fix() {
+    echo "🔧 Fixing backend issues..."
+    
+    # Stop backend container
+    echo "🛑 Stopping backend container..."
+    $DOCKER_COMPOSE_CMD stop backend
+    
+    # Remove backend container
+    echo "🗑️ Removing backend container..."
+    $DOCKER_COMPOSE_CMD rm -f backend
+    
+    # Rebuild and start backend container
+    echo "🔨 Rebuilding backend container..."
+    $DOCKER_COMPOSE_CMD build backend
+    $DOCKER_COMPOSE_CMD up -d backend
+    
+    # Wait and check
+    echo "⏳ Waiting for container to start..."
+    sleep 10
+    
+    echo ""
+    echo "✅ Fix completed!"
+    show_status
+}
 
-echo "=== MDVA Docker Configuration ==="
-echo "SSL Enabled: $SSL_ENABLED"
-echo "Frontend HTTP Port: $FRONTEND_HTTP_PORT"
-echo "Frontend HTTPS Port: $FRONTEND_HTTPS_PORT"
-echo "Backend HTTP Port: $BACKEND_HTTP_PORT"
-echo "Backend HTTPS Port: $BACKEND_HTTPS_PORT"
-echo "================================"
+# Function to clean and rebuild
+run_clean() {
+    echo "🧹 Cleaning and rebuilding MDVA services..."
+    
+    # Stop all MDVA containers
+    echo "🛑 Stopping all MDVA containers..."
+    $DOCKER_COMPOSE_CMD down
+    
+    # Remove only MDVA images
+    echo "🗑️ Removing MDVA images..."
+    docker rmi docker_backend 2>/dev/null || true
+    
+    # Clean up only MDVA related Docker resources
+    echo "🧹 Cleaning up MDVA Docker resources..."
+    docker system prune -f
+    
+    # Build and start
+    echo "🔨 Building and starting MDVA services..."
+    $DOCKER_COMPOSE_CMD up -d --build
+    
+    # Wait and check
+    echo "⏳ Waiting for services to start..."
+    sleep 15
+    
+    echo ""
+    echo "✅ Clean rebuild completed!"
+    show_status
+}
 
-# Generate nginx configuration
-echo "Generating nginx configuration..."
-./generate-nginx-config.sh
+# Function to super clean MDVA only
+run_super_clean() {
+    echo "🧹🧹🧹 SUPER CLEAN - MDVA Only!"
+    echo "================================="
+    
+    # Stop and remove only MDVA containers
+    echo "🛑 Stopping and removing MDVA containers..."
+    $DOCKER_COMPOSE_CMD down --volumes --remove-orphans
+    
+    # Remove only MDVA containers by name
+    echo "🗑️ Removing MDVA containers by name..."
+    docker rm -f mdva-backend mdva-db 2>/dev/null || true
+    
+    # Remove only MDVA images
+    echo "🗑️ Removing MDVA images..."
+    docker rmi docker_backend 2>/dev/null || true
+    
+    # Clean up only MDVA related Docker resources (not all)
+    echo "🧹 Cleaning up MDVA Docker resources..."
+    docker system prune -f
+    
+    # Build and start
+    echo "🔨 Building and starting MDVA services..."
+    $DOCKER_COMPOSE_CMD up -d --build
+    
+    # Wait and check
+    echo "⏳ Waiting for services to start..."
+    sleep 20
+    
+    echo ""
+    echo "🎉 Super clean completed (MDVA only)!"
+    show_status
+}
 
-# Check if SSL is enabled and certificates exist
-if [ "$SSL_ENABLED" = "true" ]; then
-    if [ ! -f "certs/server.crt" ] || [ ! -f "certs/server.key" ]; then
-        echo "Warning: SSL is enabled but certificates are missing!"
-        echo "Please place your SSL certificates in the 'certs' folder:"
-        echo "  - certs/server.crt"
-        echo "  - certs/server.key"
-        echo ""
-        echo "Or set SSL_ENABLED=false in your .env file"
+# Function to show status
+show_status() {
+    echo ""
+    echo "📊 Service Status:"
+    echo "=================="
+    $DOCKER_COMPOSE_CMD ps
+    
+    echo ""
+    echo "🔒 Backend API: http://localhost:$(grep BACKEND_HTTP_PORT .env | cut -d'=' -f2)"
+    echo "🗄️  Database: localhost:3306"
+    echo ""
+    echo "📊 View logs: $DOCKER_COMPOSE_CMD logs -f"
+    echo "🔍 Debug: ./debug.sh"
+}
+
+# Main script
+if [ $# -eq 0 ]; then
+    # No arguments - run normally
+    DOCKER_COMPOSE_CMD=$(check_docker_compose)
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available!"
         exit 1
     fi
+    
+    echo "✅ Using: $DOCKER_COMPOSE_CMD"
+    run_normal
+    
+elif [ "$1" = "--fix" ]; then
+    # Fix backend issues
+    DOCKER_COMPOSE_CMD=$(check_docker_compose)
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available!"
+        exit 1
+    fi
+    
+    echo "✅ Using: $DOCKER_COMPOSE_CMD"
+    run_fix
+    
+elif [ "$1" = "--clean" ]; then
+    # Clean and rebuild
+    DOCKER_COMPOSE_CMD=$(check_docker_compose)
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available!"
+        exit 1
+    fi
+    
+    echo "✅ Using: $DOCKER_COMPOSE_CMD"
+    run_clean
+    
+elif [ "$1" = "--super-clean" ]; then
+    # Super clean MDVA only
+    DOCKER_COMPOSE_CMD=$(check_docker_compose)
+    if [ $? -ne 0 ]; then
+        echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available!"
+        exit 1
+    fi
+    
+    echo "✅ Using: $DOCKER_COMPOSE_CMD"
+    run_super_clean
+    
+elif [ "$1" = "--help" ]; then
+    # Show help
+    show_usage
+    
+else
+    # Invalid argument
+    echo "❌ Invalid option: $1"
+    echo ""
+    show_usage
+    exit 1
 fi
-
-# Start services
-echo "Starting Docker services..."
-$DOCKER_COMPOSE_CMD up -d
-
-echo ""
-echo "Services started successfully!"
-echo "Frontend: http://localhost:$FRONTEND_HTTP_PORT"
-if [ "$SSL_ENABLED" = "true" ]; then
-    echo "Frontend (HTTPS): https://localhost:$FRONTEND_HTTPS_PORT"
-fi
-echo "Backend API: http://localhost:$FRONTEND_HTTP_PORT/api"
-echo "Database: localhost:3306"
-echo ""
-echo "To view logs: $DOCKER_COMPOSE_CMD logs -f"
-echo "To stop services: $DOCKER_COMPOSE_CMD down"

@@ -6,6 +6,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const { pool } = require('./config/db');
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
@@ -57,20 +58,28 @@ if (!fs.existsSync(uploadsProfileDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
+app.get('/', async (req, res) => {
+  res.json({ ok: true, env: process.env.NODE_ENV || 'production', message: 'MDVA backend is running', author: "Nikko Enggaliano", blog: "https://nikko.id" });
+});
+
 app.get('/health', async (req, res) => {
   try {
     // Check database connection
-    const dbStatus = await sequelize.authenticate()
-      .then(() => ({ connected: true, message: 'Database connection OK' }))
-      .catch(err => ({ connected: false, message: err.message }));
+    const dbStatus = await pool.promise().query('SELECT 1')
+      .then(() => ({ connected: true, message: 'Database connected' }))
+      .catch(err => ({ connected: false, message: `Database error: ${err.message}` }));
 
     res.json({
       ok: true,
       env: process.env.NODE_ENV || 'production',
       server: {
-        uptime: process.uptime(),
+        status: 'running',
+        uptime: Math.floor(process.uptime()) + '  seconds',
         timestamp: new Date().toISOString(),
-        pid: process.pid,
+        pid: process.pid
+      },
+      usage: {
+        cpu: process.cpuUsage(),
         memory: process.memoryUsage()
       },
       database: dbStatus
@@ -78,6 +87,7 @@ app.get('/health', async (req, res) => {
   } catch (error) {
     res.status(500).json({
       ok: false,
+      message: 'Health check failed',
       error: error.message
     });
   }

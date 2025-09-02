@@ -76,7 +76,7 @@ run_fix() {
     $DOCKER_COMPOSE_CMD up -d backend
     
     # Wait and check
-    echo "⏳ Waiting for container to start..."
+    echo "⏳ Waiting for container to start... (10 seconds)"
     sleep 10
     
     echo ""

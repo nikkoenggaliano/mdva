@@ -5,7 +5,9 @@ Konfigurasi Docker yang mudah untuk **Backend + MySQL** pada aplikasi MDVA.
 ## Fitur
 
 - ✅ **Backend + MySQL Only** - Tidak ada nginx/frontend
-- ✅ Konfigurasi port backend yang mudah
+- ✅ Konfigurasi port yang sederhana dan mudah
+- ✅ Backend expose ke semua interface (0.0.0.0)
+- ✅ Database internal only (tidak di-expose ke host)
 - ✅ Environment variables untuk semua konfigurasi
 - ✅ Script untuk mengubah konfigurasi dengan mudah
 - ✅ Ultimate runner dengan semua fitur fix dan clean
@@ -22,7 +24,10 @@ File yang berisi konfigurasi yang sedang digunakan. File ini akan dibuat otomati
 
 | Variabel | Default | Deskripsi |
 |----------|---------|-----------|
-| `BACKEND_HTTP_PORT` | `3001` | Port untuk backend API |
+| `backend_port` | `3001` | Port untuk backend API (expose ke host) |
+| `backend_bind` | `0.0.0.0` | Bind address backend (expose all interfaces) |
+| `database_port` | `3002` | Port database (internal only, tidak di-expose) |
+| `database_bind` | `127.0.0.1` | Bind address database (localhost only) |
 | `DB_USER` | `mdva` | Username database |
 | `DB_PASS` | `root` | Password database |
 | `DB_NAME` | `mdva` | Nama database |
@@ -47,7 +52,13 @@ nano .env
 ./configure.sh --show
 
 # Ubah port backend
-./configure.sh --backend-http-port 4000
+./configure.sh --backend-port 4000
+
+# Ubah bind address backend
+./configure.sh --backend-bind 0.0.0.0
+
+# Ubah port database (internal)
+./configure.sh --database-port 3003
 
 # Ubah database credentials
 ./configure.sh --db-user admin --db-pass mypassword
@@ -117,7 +128,10 @@ nano .env
 
 ### Default Configuration
 ```bash
-BACKEND_HTTP_PORT=3001
+backend_port=3001
+backend_bind=0.0.0.0
+database_port=3002
+database_bind=127.0.0.1
 DB_USER=mdva
 DB_PASS=root
 DB_NAME=mdva
@@ -126,7 +140,10 @@ JWT_SECRET=mdva_prod_secret_2024
 
 ### Custom Configuration
 ```bash
-BACKEND_HTTP_PORT=4000
+backend_port=4000
+backend_bind=0.0.0.0
+database_port=3003
+database_bind=127.0.0.1
 DB_USER=admin
 DB_PASS=mypassword123
 DB_NAME=myapp
@@ -157,7 +174,7 @@ docker/
 lsof -i :3001
 
 # Ubah port
-./configure.sh --backend-http-port 4000
+./configure.sh --backend-port 4000
 ```
 
 ### Backend tidak start
@@ -218,6 +235,7 @@ docker-compose ps
 - Jangan commit file `.env` ke repository
 - Gunakan password yang kuat untuk database
 - JWT secret harus unik dan aman
+- Database hanya accessible dari container (tidak di-expose ke host)
 
 ## ⚠️ Penting: Super Clean Scope
 
@@ -242,6 +260,18 @@ docker-compose ps
 - **Username/Password**: Sesuai konfigurasi di `.env`
 
 **Backend accessible dari host:**
-- **URL**: `http://localhost:BACKEND_HTTP_PORT`
+- **URL**: `http://localhost:backend_port`
 - **Default**: `http://localhost:3001`
 - **API**: `http://localhost:3001/api`
+- **Bind**: `0.0.0.0` (expose ke semua interface)
+
+**Database (internal only):**
+- **Port**: `database_port` (default: 3002)
+- **Bind**: `127.0.0.1` (localhost only)
+- **Tidak di-expose ke host** (aman)
+
+## 🔒 Keamanan Port
+
+- **Backend**: Expose ke semua interface (`0.0.0.0`) untuk akses dari luar
+- **Database**: Internal only (`127.0.0.1`) untuk keamanan
+- Database hanya bisa diakses dari container backend, tidak dari host

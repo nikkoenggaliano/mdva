@@ -5,17 +5,21 @@ show_usage() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
     echo "Options:"
-    echo "  --backend-http-port <port>  Set backend HTTP port (default: 3001)"
-    echo "  --db-user <user>             Set database user (default: mdva)"
-    echo "  --db-pass <password>         Set database password (default: root)"
-    echo "  --db-name <name>             Set database name (default: mdva)"
-    echo "  --jwt-secret <secret>        Set JWT secret (default: mdva_prod_secret_2024)"
-    echo "  --show                       Show current configuration"
-    echo "  --reset                      Reset to default configuration"
-    echo "  --help                       Show this help message"
+    echo "  --backend-port <port>      Set backend port (default: 3001)"
+    echo "  --backend-bind <bind>      Set backend bind address (default: 0.0.0.0)"
+    echo "  --database-port <port>     Set database port (default: 3002)"
+    echo "  --database-bind <bind>     Set database bind address (default: 127.0.0.1)"
+    echo "  --db-user <user>           Set database user (default: mdva)"
+    echo "  --db-pass <password>       Set database password (default: root)"
+    echo "  --db-name <name>           Set database name (default: mdva)"
+    echo "  --jwt-secret <secret>      Set JWT secret (default: mdva_prod_secret_2024)"
+    echo "  --show                     Show current configuration"
+    echo "  --reset                    Reset to default configuration"
+    echo "  --help                     Show this help message"
     echo ""
     echo "Examples:"
-    echo "  $0 --backend-http-port 4000"
+    echo "  $0 --backend-port 4000"
+    echo "  $0 --backend-bind 0.0.0.0 --database-port 3003"
     echo "  $0 --db-user admin --db-pass mypassword"
     echo "  $0 --show"
     echo "  $0 --reset"
@@ -40,17 +44,29 @@ reset_config() {
 # ========================================
 # MDVA DOCKER CONFIGURATION
 # ========================================
-# BACKEND + MYSQL ONLY (NO NGINX/FRONTEND)
+# BACKEND + MYSQL ONLY - SIMPLE CONFIG
 # ========================================
 
 # ========================================
-# BACKEND PORT
+# BACKEND CONFIGURATION
 # ========================================
-# Port untuk backend API
-BACKEND_HTTP_PORT=3001
+# Port untuk backend API (akan di-expose ke host)
+backend_port=3001
+
+# Bind address untuk backend (0.0.0.0 = expose all interfaces)
+backend_bind=0.0.0.0
 
 # ========================================
 # DATABASE CONFIGURATION
+# ========================================
+# Port untuk database (internal only, tidak di-expose)
+database_port=3002
+
+# Bind address untuk database (127.0.0.1 = localhost only)
+database_bind=127.0.0.1
+
+# ========================================
+# DATABASE CREDENTIALS
 # ========================================
 # Database username
 DB_USER=mdva
@@ -65,7 +81,6 @@ DB_NAME=mdva
 # JWT SECRET
 # ========================================
 # Secret key untuk JWT authentication
-# Gunakan string yang panjang dan random untuk production
 JWT_SECRET=mdva_prod_secret_2024
 EOF
     echo "Configuration reset to defaults!"
@@ -90,17 +105,29 @@ update_config() {
 # ========================================
 # MDVA DOCKER CONFIGURATION
 # ========================================
-# BACKEND + MYSQL ONLY (NO NGINX/FRONTEND)
+# BACKEND + MYSQL ONLY - SIMPLE CONFIG
 # ========================================
 
 # ========================================
-# BACKEND PORT
+# BACKEND CONFIGURATION
 # ========================================
-# Port untuk backend API
-BACKEND_HTTP_PORT=3001
+# Port untuk backend API (akan di-expose ke host)
+backend_port=3001
+
+# Bind address untuk backend (0.0.0.0 = expose all interfaces)
+backend_bind=0.0.0.0
 
 # ========================================
 # DATABASE CONFIGURATION
+# ========================================
+# Port untuk database (internal only, tidak di-expose)
+database_port=3002
+
+# Bind address untuk database (127.0.0.1 = localhost only)
+database_bind=127.0.0.1
+
+# ========================================
+# DATABASE CREDENTIALS
 # ========================================
 # Database username
 DB_USER=mdva
@@ -115,7 +142,6 @@ DB_NAME=mdva
 # JWT SECRET
 # ========================================
 # Secret key untuk JWT authentication
-# Gunakan string yang panjang dan random untuk production
 JWT_SECRET=mdva_prod_secret_2024
 EOF
         # Update the specific key
@@ -133,14 +159,31 @@ fi
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --backend-http-port)
+        --backend-port)
             if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ]; then
-                update_config "BACKEND_HTTP_PORT" "$2"
+                update_config "backend_port" "$2"
                 shift 2
             else
-                echo "Error: Backend HTTP port must be a number between 1-65535"
+                echo "Error: Backend port must be a number between 1-65535"
                 exit 1
             fi
+            ;;
+        --backend-bind)
+            update_config "backend_bind" "$2"
+            shift 2
+            ;;
+        --database-port)
+            if [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ]; then
+                update_config "database_port" "$2"
+                shift 2
+            else
+                echo "Error: Database port must be a number between 1-65535"
+                exit 1
+            fi
+            ;;
+        --database-bind)
+            update_config "database_bind" "$2"
+            shift 2
             ;;
         --db-user)
             update_config "DB_USER" "$2"

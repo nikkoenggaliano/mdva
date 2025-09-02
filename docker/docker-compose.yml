@@ -11,7 +11,8 @@ services:
       MYSQL_USER: ${DB_USER:-mdva}
       MYSQL_PASSWORD: ${DB_PASS:-root}
     ports:
-      - "3306:3306"
+      # Database tidak di-expose ke host (internal only)
+      - "127.0.0.1:${database_port:-3002}:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ../database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
@@ -25,7 +26,8 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      PORT: ${BACKEND_HTTP_PORT:-3001}
+      PORT: ${backend_port:-3001}
+      HOST: ${backend_bind:-0.0.0.0}
       DB_HOST: db
       DB_PORT: 3306
       DB_USER: ${DB_USER:-mdva}
@@ -33,7 +35,8 @@ services:
       DB_NAME: ${DB_NAME:-mdva}
       JWT_SECRET: ${JWT_SECRET:-mdva_prod_secret_2024}
     ports:
-      - "${BACKEND_HTTP_PORT:-3001}:${BACKEND_HTTP_PORT:-3001}"
+      # Backend di-expose ke semua interface (0.0.0.0)
+      - "${backend_port:-3001}:${backend_port:-3001}"
     depends_on:
       - db
     volumes:

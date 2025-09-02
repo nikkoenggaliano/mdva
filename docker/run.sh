@@ -155,8 +155,8 @@ show_status() {
     $DOCKER_COMPOSE_CMD ps
     
     echo ""
-    echo "🔒 Backend API: http://localhost:$(grep BACKEND_HTTP_PORT .env | cut -d'=' -f2)"
-    echo "🗄️  Database: localhost:3306"
+    echo "🔒 Backend API: http://localhost:$(grep backend_port .env | cut -d'=' -f2)"
+    echo "🗄️  Database: localhost:$(grep database_port .env | cut -d'=' -f2) (internal only)"
     echo ""
     echo "📊 View logs: $DOCKER_COMPOSE_CMD logs -f"
     echo "🔍 Debug: ./debug.sh"

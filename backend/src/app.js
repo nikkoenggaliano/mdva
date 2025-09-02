@@ -57,14 +57,30 @@ if (!fs.existsSync(uploadsProfileDir)) {
 }
 app.use('/uploads', express.static(uploadsDir));
 
-app.get('/health', (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || 'production' });
-});
-app.get('/healthz', (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || 'production' });
-});
-app.get('/healtz', (req, res) => {
-  res.json({ ok: true, env: process.env.NODE_ENV || 'production' });
+app.get('/health', async (req, res) => {
+  try {
+    // Check database connection
+    const dbStatus = await sequelize.authenticate()
+      .then(() => ({ connected: true, message: 'Database connection OK' }))
+      .catch(err => ({ connected: false, message: err.message }));
+
+    res.json({
+      ok: true,
+      env: process.env.NODE_ENV || 'production',
+      server: {
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        pid: process.pid,
+        memory: process.memoryUsage()
+      },
+      database: dbStatus
+    });
+  } catch (error) {
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
 });
 
 // Public routes

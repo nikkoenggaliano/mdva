@@ -1,5 +1,35 @@
 #!/bin/bash
 
+# Function to check if docker-compose is available
+check_docker_compose() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+        return 0
+    elif docker compose version &> /dev/null; then
+        echo "docker compose"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Check for docker-compose availability
+DOCKER_COMPOSE_CMD=$(check_docker_compose)
+if [ $? -ne 0 ]; then
+    echo "❌ Error: Neither 'docker-compose' nor 'docker compose' is available!"
+    echo ""
+    echo "Please install Docker Compose:"
+    echo "  - For docker-compose: https://docs.docker.com/compose/install/"
+    echo "  - For docker compose: Update Docker to latest version"
+    echo ""
+    echo "Or check if Docker is running:"
+    echo "  docker --version"
+    echo "  docker info"
+    exit 1
+fi
+
+echo "✅ Using: $DOCKER_COMPOSE_CMD"
+
 # Load environment variables
 if [ -f .env ]; then
     export $(cat .env | grep -v '^#' | xargs)
@@ -41,7 +71,7 @@ fi
 
 # Start services
 echo "Starting Docker services..."
-docker-compose up -d
+$DOCKER_COMPOSE_CMD up -d
 
 echo ""
 echo "Services started successfully!"
@@ -52,5 +82,5 @@ fi
 echo "Backend API: http://localhost:$FRONTEND_HTTP_PORT/api"
 echo "Database: localhost:3306"
 echo ""
-echo "To view logs: docker-compose logs -f"
-echo "To stop services: docker-compose down"
+echo "To view logs: $DOCKER_COMPOSE_CMD logs -f"
+echo "To stop services: $DOCKER_COMPOSE_CMD down"

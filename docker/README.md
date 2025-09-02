@@ -9,6 +9,7 @@ Konfigurasi Docker yang mudah untuk mengatur SSL dan port pada aplikasi MDVA.
 - ✅ Environment variables untuk semua konfigurasi
 - ✅ Script otomatis untuk generate nginx config
 - ✅ Script untuk mengubah konfigurasi dengan mudah
+- ✅ Script debugging dan troubleshooting
 
 ## File Konfigurasi
 
@@ -108,6 +109,8 @@ docker/
 ├── generate-nginx-config.sh # Script untuk generate nginx config
 ├── run.sh                 # Script untuk menjalankan aplikasi
 ├── quick-start.sh         # Script untuk quick start
+├── debug.sh               # Script untuk debugging
+├── restart.sh             # Script untuk restart dan cleanup
 ├── nginx/                 # Folder nginx config (akan dibuat otomatis)
 │   └── site.conf         # Config nginx (akan dibuat otomatis)
 └── certs/                 # Folder untuk SSL certificates (opsional)
@@ -135,9 +138,47 @@ ls -la certs/
 ./configure.sh --ssl false
 ```
 
+### Nginx config error
+```bash
+# Generate ulang nginx config
+./generate-nginx-config.sh
+
+# Atau restart dengan cleanup
+./restart.sh --clean
+```
+
+### Container tidak start
+```bash
+# Debug masalah
+./debug.sh
+
+# Restart semua service
+./restart.sh
+
+# Lihat logs
+docker-compose logs -f
+```
+
 ### Reset semua konfigurasi
 ```bash
 ./configure.sh --reset
+```
+
+## Script Utilitas
+
+### Debug Tool
+```bash
+# Cek status semua komponen
+./debug.sh
+```
+
+### Restart Tool
+```bash
+# Restart normal
+./restart.sh
+
+# Restart dengan cleanup total
+./restart.sh --clean
 ```
 
 ## Perintah Docker
@@ -154,6 +195,9 @@ docker-compose logs -f
 
 # Rebuild dan start
 docker-compose up -d --build
+
+# Check status
+docker-compose ps
 ```
 
 ## Keamanan

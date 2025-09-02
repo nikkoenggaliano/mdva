@@ -25,23 +25,29 @@ mkdir -p nginx
 if [ "$SSL_ENABLED" = "true" ]; then
     echo "Generating SSL-enabled configuration..."
     cat > nginx/site.conf << EOF
+# MDVA Site Configuration - SSL Enabled
 map \$http_upgrade \$connection_upgrade {
   default upgrade;
   ''      close;
 }
 
+# Redirect HTTP to HTTPS
 server {
   listen 80;
   server_name _;
   return 301 https://\$host\$request_uri;
 }
 
+# HTTPS Server
 server {
   listen 443 ssl http2;
   server_name _;
 
+  # SSL Configuration
   ssl_certificate     /etc/nginx/certs/server.crt;
   ssl_certificate_key /etc/nginx/certs/server.key;
+  ssl_protocols       TLSv1.2 TLSv1.3;
+  ssl_ciphers         HIGH:!aNULL:!MD5;
 
   # Static frontend
   location / {
@@ -60,24 +66,33 @@ server {
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection \$connection_upgrade;
     proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_read_timeout 300s;
+    proxy_connect_timeout 75s;
   }
 
   # File uploads
   location /uploads/ {
     proxy_pass http://backend:${BACKEND_HTTP_PORT}/uploads/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
   }
 }
 EOF
 else
     echo "Generating HTTP-only configuration..."
     cat > nginx/site.conf << EOF
+# MDVA Site Configuration - HTTP Only
 map \$http_upgrade \$connection_upgrade {
   default upgrade;
   ''      close;
 }
 
+# HTTP Server
 server {
   listen 80;
   server_name _;
@@ -99,13 +114,20 @@ server {
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection \$connection_upgrade;
     proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_read_timeout 300s;
+    proxy_connect_timeout 75s;
   }
 
   # File uploads
   location /uploads/ {
     proxy_pass http://backend:${BACKEND_HTTP_PORT}/uploads/;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
   }
 }
 EOF

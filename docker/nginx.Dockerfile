@@ -11,7 +11,7 @@ RUN mkdir -p /etc/nginx/certs && \
       -out /etc/nginx/certs/server.crt \
       -subj "/C=ID/ST=ID/O=MDVA, Inc./CN=localhost"
 
-COPY docker/nginx/nginx.conf /etc/nginx/nginx.conf
+# Copy only the site configuration, not the main nginx.conf
 COPY docker/nginx/site.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80 443

@@ -105,7 +105,7 @@ run_clean() {
     $DOCKER_COMPOSE_CMD up -d --build
     
     # Wait and check
-    echo "⏳ Waiting for services to start..."
+    echo "⏳ Waiting for services to start... (15 seconds)"
     sleep 15
     
     echo ""
@@ -139,7 +139,7 @@ run_super_clean() {
     $DOCKER_COMPOSE_CMD up -d --build
     
     # Wait and check
-    echo "⏳ Waiting for services to start..."
+    echo "⏳ Waiting for services to start... (20 seconds)"
     sleep 20
     
     echo ""

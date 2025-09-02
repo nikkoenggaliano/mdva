@@ -70,7 +70,8 @@ services:
       - backend
     volumes:
       - web_certs:/etc/nginx/certs
-      - ./nginx:/etc/nginx/conf.d
+      # Remove the nginx config volume mount to avoid conflicts
+      # - ./nginx:/etc/nginx/conf.d
 
 volumes:
   db_data:
